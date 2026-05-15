@@ -177,6 +177,62 @@ src/galatea/
 
 ---
 
+## Development cheatsheet
+
+Everything runs through [uv](https://github.com/astral-sh/uv) — you never need to activate the virtualenv manually just to run or install things.
+
+### Day-to-day commands
+
+```bash
+uv run galatea          # run the app (uv handles the venv automatically)
+uv sync                 # install / sync all dependencies from pyproject.toml
+uv add <package>        # add a new dependency and update pyproject.toml
+uv remove <package>     # remove a dependency
+```
+
+### If you want a plain shell inside the venv
+
+```bash
+source .venv/bin/activate   # activate
+python ...                  # now `python` points at the project's interpreter
+deactivate                  # leave the venv
+```
+
+### If the venv is broken or missing
+
+```bash
+rm -rf .venv        # delete it entirely
+uv sync             # uv recreates it and reinstalls everything
+```
+
+### If Python itself is missing or the wrong version
+
+```bash
+uv python install 3.12   # download and install Python 3.12 via uv
+uv sync                  # then rebuild the venv
+```
+
+### Useful one-liners
+
+```bash
+# List all installed packages in the venv
+uv pip list
+
+# Run a quick Python snippet in the project environment
+uv run python -c "from galatea.config import load_config; print(load_config())"
+
+# Browse available edge-tts voices
+uv run python -c "
+import asyncio, edge_tts
+voices = asyncio.run(edge_tts.list_voices())
+for v in voices:
+    if v['Locale'].startswith('en-'):
+        print(v['ShortName'], '-', v['Gender'])
+"
+```
+
+---
+
 ## Troubleshooting
 
 **"No module named sounddevice"** — run `uv sync` to install dependencies.
