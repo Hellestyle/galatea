@@ -1,4 +1,11 @@
+from __future__ import annotations
+
+import tomllib
 from dataclasses import dataclass, field
+from pathlib import Path
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_CONFIG_FILE  = _PROJECT_ROOT / "galatea.toml"
 
 
 @dataclass
@@ -62,3 +69,31 @@ class Config:
     llm: LLMConfig = field(default_factory=LLMConfig)
     tts: TTSConfig = field(default_factory=TTSConfig)
     character: CharacterConfig = field(default_factory=CharacterConfig)
+
+
+def load_config() -> Config:
+    """Load Config from galatea.toml, falling back to built-in defaults."""
+    config = Config()
+
+    if not _CONFIG_FILE.exists():
+        return config
+
+    with open(_CONFIG_FILE, "rb") as f:
+        data = tomllib.load(f)
+
+    _overlay(data.get("audio", {}),     config.audio)
+    _overlay(data.get("stt", {}),       config.stt)
+    _overlay(data.get("llm", {}),       config.llm)
+    _overlay(data.get("tts", {}),       config.tts)
+    _overlay(data.get("character", {}), config.character)
+
+    return config
+
+
+def _overlay(toml_section: dict, obj: object) -> None:
+    """Copy recognised keys from a TOML section onto a dataclass instance."""
+    for key, value in toml_section.items():
+        if hasattr(obj, key):
+            setattr(obj, key, value)
+        else:
+            print(f"[config] Unknown key '{key}' in galatea.toml — ignored")

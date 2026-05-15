@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import threading
 
-from .config import Config
+from .config import load_config
 from .pipeline import Pipeline
 from .state import AppState
 
@@ -29,7 +29,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    config = Config()
+    config = load_config()
     if args.model:
         config.llm.model = args.model
     if args.whisper_model:

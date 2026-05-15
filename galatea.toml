@@ -1,0 +1,101 @@
+# Galatea configuration
+# Edit this file to customise your setup, then run: uv run galatea
+
+# ── Language model ────────────────────────────────────────────────────────────
+[llm]
+# Any model you have pulled with `ollama pull <name>`
+# Fast/light:   llama3.2:1b   phi3:mini   gemma2:2b
+# Better:       llama3.2:3b   mistral     qwen2.5:3b
+model = "llama3.2:1b"
+
+# Ollama server address — change if Ollama runs on another machine
+host = "http://localhost:11434"
+
+# Galatea's personality. Keep it short — it is prepended to every conversation.
+system_prompt = """You are Galatea, a friendly and thoughtful desktop AI companion. \
+Keep your responses concise and conversational — one to three sentences. \
+Be warm, curious, and helpful."""
+
+# Hard limit on response length (tokens)
+max_tokens = 300
+
+# Creativity: 0.0 = deterministic, 1.0 = very creative
+temperature = 0.75
+
+
+# ── Speech recognition (Whisper) ──────────────────────────────────────────────
+[stt]
+# Model size: tiny.en  base.en  small.en  medium.en
+# tiny.en  — fastest, ~74 MB, good for clear speech (default)
+# base.en  — ~4× slower, noticeably more accurate
+# small.en — ~10× slower, very accurate
+model = "tiny.en"
+
+# "cpu" works everywhere; "cuda" if you have an NVIDIA GPU
+device = "cpu"
+
+# "int8" is fastest on CPU; "float16" is better on CUDA
+compute_type = "int8"
+
+# Beam search width — higher = more accurate but slower
+beam_size = 5
+
+# Transcription language (BCP-47 code)
+language = "en"
+
+
+# ── Text-to-speech (edge-tts) ─────────────────────────────────────────────────
+[tts]
+# Microsoft neural voice name (free, requires internet).
+# Browse voices: uv run python -c "import asyncio,edge_tts; asyncio.run(edge_tts.list_voices())" | grep ShortName
+#
+# Popular English female voices:
+#   en-US-JennyNeural          (warm, conversational — default)
+#   en-US-AriaNeural           (expressive)
+#   en-US-MichelleNeural       (friendly)
+#   en-GB-SoniaNeural          (British)
+#   en-AU-NatashaNeural        (Australian)
+voice = "en-US-JennyNeural"
+
+# Speaking rate — "+10%" faster, "-10%" slower, "+0%" normal
+rate = "+0%"
+
+# Volume — "+10%" louder, "-10%" quieter, "+0%" normal
+volume = "+0%"
+
+# Pitch shift in Hz — "+50Hz" higher, "-50Hz" lower, "+0Hz" normal
+pitch = "+0Hz"
+
+
+# ── Microphone / VAD ──────────────────────────────────────────────────────────
+[audio]
+# Sample rate for recording (Hz) — 16000 is what Whisper expects
+sample_rate = 16000
+
+# RMS energy threshold that counts as speech.
+# Raise this (e.g. 0.03) if Galatea triggers on background noise.
+# Lower it (e.g. 0.01) if she misses quiet speech.
+silence_threshold = 0.018
+
+# Seconds of silence that end a recording and trigger transcription
+silence_duration = 1.5
+
+# Hard upper limit on a single recording (seconds)
+max_recording_duration = 30.0
+
+
+# ── 3D character window ───────────────────────────────────────────────────────
+[character]
+# Window size in pixels
+window_width  = 600
+window_height = 800
+
+# Camera framing — tweak if your model looks too close/far or is cut off
+camera_distance_factor = 2.4   # distance = model_radius × this
+camera_height_offset   = 0.18  # shifts focus point upward (portrait framing)
+camera_fov             = 40.0  # field of view in degrees
+
+# Animation clip names inside the GLB files.
+# Change these only if your Blender export uses different clip names.
+anim_idle = "idle"
+anim_talk = "talk"
