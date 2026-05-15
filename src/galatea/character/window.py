@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import sys
+import traceback
+from pathlib import Path
 
 from panda3d.core import (
     AmbientLight,
@@ -22,9 +24,11 @@ from ..config import CharacterConfig
 from ..state import AppState
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-_MODEL     = "assets/character/galatea.glb"   # main model (optional, falls back to idle.glb)
-_IDLE_GLB  = "assets/character/idle.glb"      # idle animation (also used as model if no galatea.glb)
-_TALK_GLB  = "assets/character/talk.glb"      # talk animation
+# Resolve from this file's location so the app works regardless of cwd.
+_ASSETS    = Path(__file__).resolve().parents[3] / "assets" / "character"
+_MODEL     = _ASSETS / "galatea.glb"   # main model (optional, falls back to idle.glb)
+_IDLE_GLB  = _ASSETS / "idle.glb"      # idle animation (also used as model if no galatea.glb)
+_TALK_GLB  = _ASSETS / "talk.glb"      # talk animation
 
 # ── UI colours per pipeline state ─────────────────────────────────────────────
 _STATUS_COLOR: dict[str, tuple[float, float, float, float]] = {
@@ -69,6 +73,13 @@ class CharacterWindow:
 class _GalateaApp(ShowBase):
     def __init__(self, config: CharacterConfig, state: AppState) -> None:
         ShowBase.__init__(self)
+
+        # Register the panda3d-gltf loader so Actor can open .glb files
+        try:
+            import gltf as _gltf
+            _gltf.patch_loader(self.loader)
+        except Exception as exc:
+            print(f"[window] panda3d-gltf patch failed ({exc}) — GLB loading may not work")
 
         self._state = state
         self._config = config
@@ -131,9 +142,9 @@ class _GalateaApp(ShowBase):
     # ── Character model ───────────────────────────────────────────────────────
 
     def _load_character(self) -> None:
-        has_model = os.path.exists(_MODEL)
-        has_idle  = os.path.exists(_IDLE_GLB)
-        has_talk  = os.path.exists(_TALK_GLB)
+        has_model = _MODEL.exists()
+        has_idle  = _IDLE_GLB.exists()
+        has_talk  = _TALK_GLB.exists()
 
         if not has_model and not has_idle:
             print(
@@ -145,16 +156,16 @@ class _GalateaApp(ShowBase):
             return
 
         # Use galatea.glb as the mesh source if present, else idle.glb doubles as model
-        mesh_file = _MODEL if has_model else _IDLE_GLB
+        mesh_file = str(_MODEL if has_model else _IDLE_GLB)
 
         # Build animation dictionary for Actor
         # Keys are the names WE use in code; values are file paths.
         # If mesh_file is idle.glb it already carries the idle animation.
         anim_dict: dict[str, str] = {}
-        if has_idle and mesh_file != _IDLE_GLB:
-            anim_dict[self._config.anim_idle] = _IDLE_GLB
+        if has_idle and mesh_file != str(_IDLE_GLB):
+            anim_dict[self._config.anim_idle] = str(_IDLE_GLB)
         if has_talk:
-            anim_dict[self._config.anim_talk] = _TALK_GLB
+            anim_dict[self._config.anim_talk] = str(_TALK_GLB)
 
         try:
             self._actor = Actor(mesh_file, anim_dict or None)
@@ -182,6 +193,7 @@ class _GalateaApp(ShowBase):
 
         except Exception as exc:
             print(f"[window] Failed to load model: {exc}")
+            traceback.print_exc()
             self._load_placeholder()
 
     def _load_placeholder(self) -> None:
