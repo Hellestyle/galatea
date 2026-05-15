@@ -27,6 +27,10 @@ build/
 .DS_Store
 Thumbs.db
 
+# 3D character assets — large files, user provides their own
+assets/character/*.glb
+assets/character/*.fbx
+
 # Env / secrets
 .env
 .env.*

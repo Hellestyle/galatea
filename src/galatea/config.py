@@ -44,10 +44,15 @@ class TTSConfig:
 
 @dataclass
 class CharacterConfig:
-    window_width: int = 420
-    window_height: int = 580
-    fps: int = 30
-    mouth_anim_fps: float = 9.0   # Barbera mouth flip rate
+    window_width: int = 600
+    window_height: int = 800
+    # Camera framing for the 3D model
+    camera_distance_factor: float = 2.4    # distance = model_radius × this
+    camera_height_offset: float = 0.18     # shifts focus upward (portrait framing)
+    camera_fov: float = 40.0
+    # Animation names in the GLB — change if your export uses different names
+    anim_idle: str = "idle"
+    anim_talk: str = "talk"
 
 
 @dataclass
