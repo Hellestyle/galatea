@@ -15,7 +15,7 @@ from panda3d.core import (
     loadPrcFileData,
 )
 from direct.actor.Actor import Actor
-from direct.gui.DirectGui import DirectFrame
+from direct.gui.DirectGui import DirectButton, DirectFrame
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
@@ -38,6 +38,7 @@ _STATUS_COLOR: dict[str, tuple[float, float, float, float]] = {
     "thinking":   (0.80, 0.55, 0.95, 1),
     "speaking":   (0.28, 0.65, 0.98, 1),
     "error":      (0.92, 0.28, 0.28, 1),
+    "standby":    (0.38, 0.38, 0.45, 1),
 }
 _STATUS_LABEL: dict[str, str] = {
     "idle":       "Idle",
@@ -46,7 +47,16 @@ _STATUS_LABEL: dict[str, str] = {
     "thinking":   "Thinking…",
     "speaking":   "Speaking",
     "error":      "Error",
+    "standby":    "Standby  —  mic off",
 }
+
+# Mic button appearance per state
+_MIC_ON_TEXT   = "Mic  On"
+_MIC_OFF_TEXT  = "Mic  Off"
+_MIC_ON_FG     = (0.22, 0.90, 0.42, 1)
+_MIC_OFF_FG    = (0.55, 0.55, 0.60, 1)
+_MIC_ON_FRAME  = (0.07, 0.24, 0.09, 0.90)
+_MIC_OFF_FRAME = (0.14, 0.14, 0.16, 0.90)
 
 
 class CharacterWindow:
@@ -86,6 +96,7 @@ class _GalateaApp(ShowBase):
         self._actor: Actor | None = None
         self._current_anim: str = config.anim_idle
         self._can_talk: bool = False
+        self._last_mic_enabled: bool = True   # tracks last known state for button refresh
 
         self.setBackgroundColor(0.06, 0.06, 0.16, 1)
         self.disableMouse()
@@ -97,6 +108,7 @@ class _GalateaApp(ShowBase):
 
         self.taskMgr.add(self._update, "update")
         self.accept("escape", self._quit)
+        self.accept("m", self._toggle_mic)   # M key toggles mic
 
     # ── Lighting ──────────────────────────────────────────────────────────────
 
@@ -226,7 +238,7 @@ class _GalateaApp(ShowBase):
     def _setup_ui(self) -> None:
         ar = self._config.window_width / self._config.window_height  # aspect ratio
 
-        # Dark gradient panel at the bottom so text is always readable
+        # Dark panel at the bottom so text is always readable
         DirectFrame(
             frameColor=(0, 0, 0, 0.58),
             frameSize=(-ar, ar, -1.02, -0.52),
@@ -271,6 +283,36 @@ class _GalateaApp(ShowBase):
             parent=self.aspect2d,
         )
 
+        # Mic toggle button — centred at the bottom of the panel
+        self._mic_btn = DirectButton(
+            text=_MIC_ON_TEXT,
+            text_scale=0.048,
+            text_fg=_MIC_ON_FG,
+            text_shadow=(0, 0, 0, 0.8),
+            text_shadowOffset=(0.002, 0.002),
+            frameColor=_MIC_ON_FRAME,
+            frameSize=(-0.24, 0.24, -0.038, 0.050),
+            pos=(0, 0, -0.945),
+            relief=1,   # FLAT
+            command=self._toggle_mic,
+            parent=self.aspect2d,
+        )
+
+        # Keyboard hint
+        OnscreenText(
+            text="[M]",
+            pos=(0.215, -0.948),
+            scale=0.032,
+            fg=(0.35, 0.35, 0.42, 1),
+            align=TextNode.ALeft,
+            parent=self.aspect2d,
+        )
+
+    # ── Mic toggle ────────────────────────────────────────────────────────────
+
+    def _toggle_mic(self) -> None:
+        self._state.mic_enabled = not self._state.mic_enabled
+
     # ── Per-frame update ──────────────────────────────────────────────────────
 
     def _update(self, task: Task) -> int:
@@ -297,6 +339,14 @@ class _GalateaApp(ShowBase):
         # Update status text and colour
         self._status_txt.setText(_STATUS_LABEL.get(status, status.upper()))
         self._status_txt.setFg(_STATUS_COLOR.get(status, _STATUS_COLOR["idle"]))
+
+        # Refresh mic button only when its state changes
+        mic_on = self._state.mic_enabled
+        if mic_on != self._last_mic_enabled:
+            self._last_mic_enabled = mic_on
+            self._mic_btn["text"]       = _MIC_ON_TEXT   if mic_on else _MIC_OFF_TEXT
+            self._mic_btn["text_fg"]    = _MIC_ON_FG     if mic_on else _MIC_OFF_FG
+            self._mic_btn["frameColor"] = _MIC_ON_FRAME  if mic_on else _MIC_OFF_FRAME
 
         # Update conversation text
         u = self._state.user_text

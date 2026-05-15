@@ -1,7 +1,7 @@
 import threading
 from typing import Literal
 
-Status = Literal["idle", "listening", "processing", "thinking", "speaking", "error"]
+Status = Literal["idle", "listening", "processing", "thinking", "speaking", "error", "standby"]
 
 
 class AppState:
@@ -14,6 +14,7 @@ class AppState:
         self._user_text: str = ""
         self._ai_text: str = ""
         self._running: bool = True
+        self._mic_enabled: bool = True
 
     # ── status ──────────────────────────────────────────────────────────────
     @property
@@ -57,6 +58,17 @@ class AppState:
     def ai_text(self, value: str) -> None:
         with self._lock:
             self._ai_text = value
+
+    # ── mic mute toggle ──────────────────────────────────────────────────────
+    @property
+    def mic_enabled(self) -> bool:
+        with self._lock:
+            return self._mic_enabled
+
+    @mic_enabled.setter
+    def mic_enabled(self, value: bool) -> None:
+        with self._lock:
+            self._mic_enabled = bool(value)
 
     # ── lifecycle ────────────────────────────────────────────────────────────
     @property

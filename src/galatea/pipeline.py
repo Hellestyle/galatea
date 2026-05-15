@@ -50,12 +50,22 @@ class Pipeline:
                 self.state.status = "idle"
 
     def _cycle(self) -> None:
+        # If mic is muted, park in standby and return quickly
+        if not self.state.mic_enabled:
+            self.state.status = "standby"
+            time.sleep(0.2)
+            return
+
         # 1 ─ Listen
         self.state.status = "listening"
-        audio = self.capture.listen_for_speech(running_check=lambda: self.state.running)
+        audio = self.capture.listen_for_speech(
+            # Abort cleanly if app exits OR user mutes mid-listen
+            running_check=lambda: self.state.running and self.state.mic_enabled,
+        )
 
         if audio is None or not self.state.running:
-            self.state.status = "idle"
+            # Mic was disabled mid-listen — show standby rather than idle
+            self.state.status = "standby" if not self.state.mic_enabled else "idle"
             return
 
         # 2 ─ Transcribe
