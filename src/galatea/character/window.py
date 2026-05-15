@@ -56,8 +56,11 @@ class CharacterWindow:
         # These MUST be set before ShowBase.__init__
         loadPrcFileData("", f"win-size {self.config.window_width} {self.config.window_height}")
         loadPrcFileData("", "win-title Galatea")
+        loadPrcFileData("", "sync-video 1")          # vsync — prevents GPU from running flat out
+        loadPrcFileData("", "clock-mode limited")
+        loadPrcFileData("", "clock-frame-rate 30")   # cap render loop to 30 fps
         loadPrcFileData("", "framebuffer-multisample 1")
-        loadPrcFileData("", "multisamples 4")
+        loadPrcFileData("", "multisamples 2")        # 2× MSAA (was 4×)
 
         app = _GalateaApp(self.config, self.state)
         app.run()
@@ -82,7 +85,6 @@ class _GalateaApp(ShowBase):
         self._setup_ui()
 
         self.taskMgr.add(self._update, "update")
-        self.accept("window-event", self._on_window_event)
         self.accept("escape", self._quit)
 
     # ── Lighting ──────────────────────────────────────────────────────────────
@@ -91,9 +93,15 @@ class _GalateaApp(ShowBase):
         # PBR rendering makes GLB materials look correct (metallic/roughness)
         try:
             import simplepbr
-            simplepbr.init()
-        except Exception:
-            pass  # fall back to classic Phong
+            simplepbr.init(
+                max_lights=3,
+                enable_shadows=False,   # shadows are expensive
+                use_occlusion_maps=False,
+                msaa_samples=2,
+            )
+        except Exception as exc:
+            print(f"[window] simplepbr unavailable ({exc}), using auto-shader fallback")
+            self.render.setShaderAuto()
 
         ambient = AmbientLight("ambient")
         ambient.setColor(LColor(0.20, 0.20, 0.26, 1))
@@ -292,10 +300,10 @@ class _GalateaApp(ShowBase):
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
+    def userExit(self) -> None:
+        """Called by Panda3D when the user clicks the window close button."""
+        self._quit()
+
     def _quit(self) -> None:
         self._state.running = False
         sys.exit(0)
-
-    def _on_window_event(self, window) -> None:  # noqa: ANN001
-        if not window.is_open():
-            self._quit()
