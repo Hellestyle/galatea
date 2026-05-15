@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments / UV
+.venv/
+.uv/
+
+# faster-whisper model cache (re-downloaded automatically)
+# ~/.cache/huggingface/ — outside project, no need to ignore here
+
+# Temp audio files from TTS
+/tmp/*.mp3
+/tmp/*.wav
+
+# Editor / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.*

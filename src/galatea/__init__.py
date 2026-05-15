@@ -1,0 +1,1 @@
+"""Galatea — desktop AI character."""
